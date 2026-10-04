@@ -7,9 +7,25 @@ Two Claude Code mods, installed once so they load in every session and every pro
 
 ## Install
 
-### Your computer (desktop app Code tab, terminal, IDE), Windows/macOS/Linux
+### Your computer (desktop app, terminal, VS Code), Windows/macOS/Linux
 
-In any Claude Code session:
+**Windows (PowerShell, e.g. VS Code's terminal):**
+
+```powershell
+Remove-Item -Recurse -Force "$env:TEMP\claude-mods" -ErrorAction SilentlyContinue
+git clone --depth 1 https://github.com/JPanna/claude-mods "$env:TEMP\claude-mods"
+powershell -ExecutionPolicy Bypass -File "$env:TEMP\claude-mods\install.ps1"
+```
+
+**macOS/Linux:**
+
+```
+git clone --depth 1 -q https://github.com/JPanna/claude-mods /tmp/claude-mods && bash /tmp/claude-mods/install.sh
+```
+
+Both copy the mods into `~/.claude/skills/`, which every Claude Code surface loads. Then reload (VS Code: Ctrl+Shift+P → "Developer: Reload Window"; elsewhere `/reload-plugins` or a new session). Re-run to update.
+
+**Or as plugins**, in the terminal CLI (the VS Code chat panel has no `/plugin`), so `claude plugin update` can update them:
 
 ```
 /plugin marketplace add JPanna/claude-mods
@@ -17,7 +33,7 @@ In any Claude Code session:
 /plugin install shortcuts@claude-mods
 ```
 
-Then `/reload-plugins` (or start a new session). They're installed for your user, so every project gets them.
+(or from any shell: `claude plugin marketplace add JPanna/claude-mods`, `claude plugin install autopilot@claude-mods`, `claude plugin install shortcuts@claude-mods`). Use one route, not both, or the mods load twice.
 
 Update later with `/plugin marketplace update claude-mods`, then `/plugin update autopilot@claude-mods` and `/plugin update shortcuts@claude-mods`.
 
@@ -33,7 +49,7 @@ Every new cloud session in that environment, in any repo, then has both mods. Up
 
 ### Built-in extra
 
-`/plugin enable cc-plugin-you-should-know@builtin`: a side agent that flags things you might miss.
+`/plugin enable cc-plugin-you-should-know@builtin` (or `claude plugin enable cc-plugin-you-should-know@builtin` in a shell): a side agent that flags things you might miss.
 
 Check it worked: type `/shortcuts` or `/autopilot status`.
 
