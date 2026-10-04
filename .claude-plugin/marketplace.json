@@ -1,0 +1,21 @@
+{
+  "name": "claude-mods",
+  "owner": {
+    "name": "JPanna"
+  },
+  "metadata": {
+    "description": "Claude Code mods: autopilot and ;shortcuts"
+  },
+  "plugins": [
+    {
+      "name": "autopilot",
+      "source": "./plugins/autopilot",
+      "description": "Works through a GOALS.md goal tree turn after turn, with safety guards and a progress band"
+    },
+    {
+      "name": "shortcuts",
+      "source": "./plugins/shortcuts",
+      "description": "Type ;cp, ;plan, ;go, ;tdd, ;ship or ;brief in a prompt to attach a saved instruction"
+    }
+  ]
+}

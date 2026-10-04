@@ -1,0 +1,10 @@
+{
+  "name": "autopilot",
+  "version": "0.1.0",
+  "description": "Works through a GOALS.md goal tree turn after turn, with safety guards and a progress band",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "JPanna"
+  },
+  "homepage": "https://github.com/JPanna/claude-mods"
+}

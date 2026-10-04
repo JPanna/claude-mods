@@ -1,0 +1,9 @@
+{
+  "name": "shortcuts",
+  "version": "0.2.0",
+  "description": "Type ;cp, ;plan, ;go, ;tdd, ;ship or ;brief in a prompt to attach a saved instruction",
+  "author": {
+    "name": "JPanna"
+  },
+  "homepage": "https://github.com/JPanna/claude-mods"
+}
