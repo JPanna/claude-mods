@@ -82,11 +82,59 @@ SQL DROP/TRUNCATE · changing .env files (reading is fine)
 
 ## autopilot
 
+### Giving it a goal
+
+1. **Open a session in the repo you want worked on** (a cloud session in an environment with the setup-script line, or Claude Code on your computer).
+2. **Write the plan:**
+   ```
+   /autopilot plan <your goal>
+   ```
+   Claude reads the code and writes `GOALS.md` at the repo root, then stops so you can check it. Nothing is changed yet.
+3. **Review `GOALS.md`.** Open it, or ask Claude to show it. Ask for changes in plain words ("split the API task", "drop the dashboard part", "do tests first"), or edit the file yourself.
+4. **Start it:**
+   ```
+   /autopilot
+   ```
+   It works through the tasks one per turn until everything is done, it hits the round limit (40, or `/autopilot rounds <n>`), it gets stuck, or it needs you. Interrupt with Esc any time; `/autopilot` resumes.
+
+Shortcut: `/autopilot <your goal>` plans and starts straight away, with no review step.
+
+**What makes a good goal:** one outcome you could check at the end. Say what "done" looks like and anything off-limits.
+
+- Good: `/autopilot plan make the setup and test suite pass on a fresh Windows machine, without changing the trading logic`
+- Good: `/autopilot plan add CSV export to the screener with tests, matching the existing report columns`
+- Too vague: `/autopilot plan improve the app`
+
+**What `GOALS.md` looks like:**
+
+```markdown
+# Goal: Make setup and tests pass on a fresh Windows machine
+
+- [ ] Reproduce the current setup failures
+  - [ ] Run setup.ps1 in a clean venv and record each error
+  - [ ] Run the test suite and list failing tests
+- [ ] Fix setup
+  - [ ] Pin missing dependencies in requirements.txt
+- [ ] Fix failing tests
+
+## Lessons
+
+## Log
+```
+
+Each task is a `- [ ]` line; subtasks are indented under it. Autopilot ticks a task (`- [x]`) only after proving it works, and adds a line to `## Log` saying what changed and how it checked. Add, reorder or delete tasks any time; each round reads the file fresh. If it ends a reply with `AUTOPILOT: BLOCKED <reason>`, answer what it needs, then type `/autopilot`.
+
+### Running it overnight
+
+Give the goal in the session your nightly Routine fires into (step 2 above), review `GOALS.md`, then turn the Routine on: ask Claude "resume the nightly autopilot routine", or toggle it on under Routines in the Claude app. Each night it gets a fresh budget (`/autopilot rounds 80`) and continues where `GOALS.md` left off. In the morning, read `## Log` and the commits on the session's branch. Turn the Routine off when the goal is done or you have no goal, since an empty run still costs a turn.
+
+### How it works
+
 Each round does one task from `GOALS.md` (at the repo root): split it if it's bigger than ~15 minutes, prove it works, tick it, add a line to `## Log`, commit to the current branch. Every 10th round starts with a retro that reorders what's left and records lessons under `## Lessons`. Edit `GOALS.md` any time; each round reads it fresh.
 
 It stops, with a toast and a push notification where the session supports them, when everything is done, the round limit is hit, 3 rounds in a row leave `GOALS.md` unchanged, Claude ends a reply with `AUTOPILOT: BLOCKED <reason>`, a turn errors, or you interrupt.
 
-**Overnight:** a Routine that fires into a session with the prompt `/autopilot rounds 80` runs it every night. A Routine's prompt reaches an existing session as a notification rather than a typed command, so the mod picks up `/autopilot`, `rounds <n>`, `status` or `stop` from your own scheduled routines (never a new goal) and runs it when that turn ends.
+**Routines:** a Routine's prompt reaches an existing session as a notification rather than a typed command, so the mod picks up `/autopilot`, `rounds <n>`, `status` or `stop` from your own scheduled routines (never a new goal) and runs it when that turn ends.
 
 **Band above the prompt:** state, goal progress, next task, last turn's time and tool calls, files edited, last test result. The status line shows `autopilot <round>/<max> · <done>/<total>`.
 
