@@ -10,7 +10,7 @@
     {
       "name": "autopilot",
       "source": "./plugins/autopilot",
-      "description": "Works through a GOALS.md goal tree turn after turn, with safety guards and a progress band"
+      "description": "Works through a GOALS.md goal tree turn after turn, with locked checks, its own check verdicts, lessons that carry over, safety guards and a progress band"
     },
     {
       "name": "shortcuts",

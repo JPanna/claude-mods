@@ -6,7 +6,21 @@ export type Run = {
   stuck: number
   lastGoals: string
   lastStop: string | null
+  // 'checks' while a /autopilot checks turn writes the tests; 'work' otherwise.
+  phase: 'work' | 'checks'
+  // The task being worked, the commit it started from (for reverting), and
+  // how many rounds in a row it failed the check.
+  task: string | null
+  base: string | null
+  fails: number
+  // The commit /autopilot checks started from; /autopilot lock locks what changed since.
+  checksBase: string | null
+  // Each round is delegated to a fresh subagent (/autopilot fresh on).
+  fresh: boolean
+  verdict: Verdict | null
 }
+
+export type Verdict = { passed: boolean; at: number; command: string }
 
 export type GoalsSummary = {
   goal: string | null

@@ -2,7 +2,7 @@
 
 Two Claude Code mods, installed once so they load in every session and every project.
 
-- **autopilot**: works through a `GOALS.md` goal tree one small task per turn, with safety guards and a progress band above the prompt.
+- **autopilot**: works through a `GOALS.md` goal tree one small task per turn. Tests you approve are locked so it can't weaken them, the mod runs your checks itself after every round (Claude's word doesn't count), failed tasks are reverted, and lessons carry over between goals. Also: safety guards and a progress band above the prompt.
 - **shortcuts**: type `;cp`, `;plan`, `;go`, `;tdd`, `;ship` or `;brief` in any prompt to attach a saved instruction.
 
 ## Install
@@ -57,13 +57,21 @@ Check it worked: type `/shortcuts` or `/autopilot status`.
 
 ```
 AUTOPILOT
+/autopilot checks <goal> write only the tests that define done; review them
+/autopilot lock [paths]  lock those tests (default: what `checks` changed)
+/autopilot unlock        remove every lock
+/autopilot plan <goal>   plan GOALS.md only: review/edit it first
 /autopilot <goal>        plan GOALS.md, then work through it
-/autopilot plan <goal>   plan only: review/edit GOALS.md first
 /autopilot               resume (keeps the round count)
 /autopilot rounds <n>    fresh budget of n rounds (default 40)
-/autopilot status        progress, next task, why it last stopped
+/autopilot fresh on|off  each round in a fresh subagent (off by default)
+/autopilot status        progress, next task, locks, last check, why it stopped
 /autopilot stop          stop after the current turn
 Esc                      pause now; /autopilot resumes
+
+GOALS.md lines the mod runs itself (from the repo root)
+Check: <cmd>   after every round; a round only counts when it passes
+Done:  <cmd>   when every task is ticked; the goal only finishes when it passes
 
 SHORTCUTS (type anywhere in a prompt, combine freely)
 ;cp      ask the clarifying questions first, then one decisive answer
@@ -83,6 +91,8 @@ SQL DROP/TRUNCATE · changing .env files (reading is fine)
 ## autopilot
 
 ### Giving it a goal
+
+For anything that tests can measure, start with **locked checks** (next section), then plan. For quick goals, go straight to step 1.
 
 1. **Open a session in the repo you want worked on** (a cloud session in an environment with the setup-script line, or Claude Code on your computer).
 2. **Write the plan:**
@@ -109,6 +119,8 @@ Shortcut: `/autopilot <your goal>` plans and starts straight away, with no revie
 
 ```markdown
 # Goal: Make setup and tests pass on a fresh Windows machine
+Check: ruff check && pytest tests/ -q --ignore=tests/test_fresh_install.py
+Done: ruff check && pytest tests/ -q
 
 - [ ] Reproduce the current setup failures
   - [ ] Run setup.ps1 in a clean venv and record each error
@@ -122,7 +134,33 @@ Shortcut: `/autopilot <your goal>` plans and starts straight away, with no revie
 ## Log
 ```
 
-Each task is a `- [ ]` line; subtasks are indented under it. Autopilot ticks a task (`- [x]`) only after proving it works, and adds a line to `## Log` saying what changed and how it checked. Add, reorder or delete tasks any time; each round reads the file fresh. If it ends a reply with `AUTOPILOT: BLOCKED <reason>`, answer what it needs, then type `/autopilot`.
+Each task is a `- [ ]` line; subtasks are indented under it. `Check:` is the command that must keep passing after every round (lint plus the tests that pass today); `Done:` is the command that passes only when the goal is met (usually the locked checks). The plan writes both; fix them if they're wrong, since the mod trusts them. Autopilot ticks a task (`- [x]`) only after proving it works, and adds a line to `## Log` saying what changed and how it checked. Add, reorder or delete tasks any time; each round reads the file fresh. If it ends a reply with `AUTOPILOT: BLOCKED <reason>`, answer what it needs, then type `/autopilot`.
+
+### Locked checks (test-first, so it can't cheat)
+
+The idea behind the "Karpathy method": you decide what "done" means as tests, approve them, and lock them. Autopilot then has to make the code pass them and can't edit them to pass.
+
+1. **Write the checks:**
+   ```
+   /autopilot checks <your goal>
+   ```
+   Claude writes only the tests that define done (following the repo's test conventions), shows they fail for the right reason, and stops.
+2. **Review them.** This is the important step: the tests are the spec. Ask for changes in plain words until they say exactly what you want.
+3. **Lock them:**
+   ```
+   /autopilot lock
+   ```
+   This locks every file `checks` added or changed (or name them: `/autopilot lock tests/test_export.py`). It records a fingerprint of each in `.autopilot/locks.json` and commits both.
+4. **Plan and run:** `/autopilot plan <same goal>`, review, then `/autopilot`. The plan's `Done:` line runs the locked tests; `Check:` leaves them out until they can pass.
+
+While locked:
+- The guard blocks any edit to a locked file or to `.autopilot/`, through edit tools or shell writes (`sed -i`, `>`, `cp`, `git checkout`, …).
+- After every round the mod re-checks each fingerprint. A changed file is put back automatically, and the round is sent back to fix the code instead.
+- `/autopilot unlock` removes every lock (only you can type it; a routine can't).
+
+### Fresh subagents (optional)
+
+`/autopilot fresh on` hands each round to a new subagent with a clean context, which keeps long overnight runs from bloating and repeating themselves. It costs more tokens per round. `/autopilot fresh off` goes back. The setting is remembered on that computer (cloud sessions start with it off).
 
 ### Running it overnight
 
@@ -130,13 +168,22 @@ Give the goal in the session your nightly Routine fires into (step 2 above), rev
 
 ### How it works
 
-Each round does one task from `GOALS.md` (at the repo root): split it if it's bigger than ~15 minutes, prove it works, tick it, add a line to `## Log`, commit to the current branch. Every 10th round starts with a retro that reorders what's left and records lessons under `## Lessons`. Edit `GOALS.md` any time; each round reads it fresh.
+Each round does one task from `GOALS.md` (at the repo root): split it if it's bigger than ~15 minutes, make it work, tick it, add a line to `## Log`, commit to the current branch. Edit `GOALS.md` any time; each round reads it fresh.
 
-It stops, with a toast and a push notification where the session supports them, when everything is done, the round limit is hit, 3 rounds in a row leave `GOALS.md` unchanged, Claude ends a reply with `AUTOPILOT: BLOCKED <reason>`, a turn errors, or you interrupt.
+**The mod's verdict, not Claude's.** After every round the mod itself runs the `Check:` command and re-checks the locked files:
+- Pass: on to the next task.
+- Fail: the next round is "fix this", with the failing output (attempt 2 of 3, then 3 of 3).
+- Third failure on the same task: the mod puts every file except the locks back to how they were when the task started, in a new commit (no history is rewritten), notes it in `## Log`, and stops.
+
+When every task is ticked, the mod runs `Done:`. If it fails, Claude adds the missing tasks and carries on (up to 3 tries); the goal only finishes when `Done:` passes.
+
+**Lessons that carry over.** Every 10th round starts with a retro: reorder what's left, then distil general habits (not notes about this goal) into `AUTOPILOT_LESSONS.md` at the repo root, and add `@AUTOPILOT_LESSONS.md` to `CLAUDE.md` so every future session in that repo reads them, autopilot or not. Edit or delete lessons any time.
+
+It stops, with a toast and a push notification where the session supports them, when the goal is done (and `Done:` passes), the round limit is hit, a task fails its check 3 times, 3 rounds in a row leave `GOALS.md` unchanged, a locked file can't be restored, Claude ends a reply with `AUTOPILOT: BLOCKED <reason>`, a turn errors, or you interrupt.
 
 **Routines:** a Routine's prompt reaches an existing session as a notification rather than a typed command, so the mod picks up `/autopilot`, `rounds <n>`, `status` or `stop` from your own scheduled routines (never a new goal) and runs it when that turn ends.
 
-**Band above the prompt:** state, goal progress, next task, last turn's time and tool calls, files edited, last test result. The status line shows `autopilot <round>/<max> · <done>/<total>`.
+**Band above the prompt:** state (and fix attempt), goal progress, next task, last turn's time and tool calls, files edited, last check verdict, fresh subagents. The status line shows `autopilot <round>/<max> · <done>/<total>`.
 
 ## shortcuts
 

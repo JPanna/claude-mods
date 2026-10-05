@@ -47,6 +47,13 @@ export function protectedFile(path: string): boolean {
 // command that creates, changes or removes files. Reading one (`cat .env`) passes.
 const WRITERS = /(>|\b(tee|cp|mv|rm|ln|install|truncate|dd|touch|chmod|chown)\b|\bsed\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*i|\bperl\s+.*-[a-zA-Z]*i)/
 
+// Also git commands that rewrite files in place; used for locked checks.
+const GIT_WRITERS = /\bgit\s+(rm|mv|checkout|restore|apply|stash)\b/
+
+export function writes(segment: string): boolean {
+  return WRITERS.test(segment) || GIT_WRITERS.test(segment.replace(GIT_GLOBALS, 'git'))
+}
+
 function writesSecret(segment: string): boolean {
   if (!WRITERS.test(segment)) return false
   const words = segment.split(/[\s'"=<>]+/).filter(Boolean)
