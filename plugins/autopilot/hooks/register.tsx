@@ -25,6 +25,7 @@ import {
   formatLocks,
   isLockedPath,
   parseLocks,
+  progressLine,
   relPath,
   tail,
   touchesLocked,
@@ -449,6 +450,24 @@ function describe(r: Run, g: GoalsSummary | null, locks: Locks): string {
   return `Autopilot ${state}.\n${tree}\n${extras.join(' · ')}`
 }
 
+// The progress line for the reply that just ended, from the state after it.
+async function lineAfter($: Engine): Promise<string> {
+  const r = await read($, run)
+  const g = await read($, goals)
+  return progressLine({
+    isOn: r.isOn,
+    phase: r.phase,
+    round: r.round,
+    maxRounds: r.maxRounds,
+    fails: r.fails,
+    lastStop: r.lastStop,
+    done: g?.done ?? null,
+    total: g?.total ?? null,
+    next: g?.next ?? null,
+    verdict: r.verdict,
+  })
+}
+
 function ago(ms: number): string {
   const minutes = Math.round(ms / 60000)
   return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes}m ago` : `${Math.round(minutes / 60)}h ago`
@@ -541,8 +560,9 @@ export const register: Register = on => {
     if (fromRoutine !== null) {
       const args = fromRoutine
       fromRoutine = null
-      $.ui.toast(await handle($, args), { timeoutMs: 10000 })
-      return done
+      const answer = await handle($, args)
+      $.ui.toast(answer, { timeoutMs: 10000 })
+      return { ...done, text: `Autopilot: ${answer.split('\n')[0]}` }
     }
 
     const r = await read($, run)
@@ -552,21 +572,16 @@ export const register: Register = on => {
     }
     if (e.isAborted) {
       await stop($, 'paused because you interrupted; /autopilot resumes', true)
-      return done
-    }
-    if (e.reason === 'error' || e.reason === 'refusal') {
+    } else if (e.reason === 'error' || e.reason === 'refusal') {
       await stop($, `the turn ended with ${e.reason === 'error' ? 'an API error' : 'a refusal'}`)
-      return done
-    }
-    if (r.phase === 'checks') {
+    } else if (r.phase === 'checks') {
       await update($, run, x => ({ ...x, isOn: false, phase: 'work', lastStop: 'checks written; review them, then /autopilot lock' }))
       await showStatus($)
       await notify($, 'Autopilot wrote the checks: review them, then type /autopilot lock')
-      return done
+    } else {
+      await afterRound($, r, e.answer)
     }
-
-    await afterRound($, r, e.answer)
-    return done
+    return { ...done, text: await lineAfter($) }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

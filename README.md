@@ -183,7 +183,9 @@ It stops, with a toast and a push notification where the session supports them, 
 
 **Routines:** a Routine's prompt reaches an existing session as a notification rather than a typed command, so the mod picks up `/autopilot`, `rounds <n>`, `status` or `stop` from your own scheduled routines (never a new goal) and runs it when that turn ends.
 
-**Band above the prompt:** state (and fix attempt), goal progress, next task, last turn's time and tool calls, files edited, last check verdict, fresh subagents. The status line shows `autopilot <round>/<max> · <done>/<total>`.
+**Progress under each reply (works everywhere):** while autopilot runs, a line like `Autopilot · round 3/40 · 2/9 done · next: Add tests · last check ✓` appears under every reply, and `Autopilot stopped: <reason>.` when it stops. It's part of the conversation, so it shows in the web app, the desktop app, VS Code and on your phone.
+
+**Panel above the prompt (terminal):** state (and fix attempt), goal progress, next task, last turn's time and tool calls, files edited, last check verdict, fresh subagents, with Stop and Hide buttons. It draws in the terminal (`claude`). Some apps don't draw mod panels yet, including the VS Code extension and cloud sessions viewed in the web or desktop app; the progress line above covers those, and `/autopilot status` gives the same detail on demand.
 
 ## shortcuts
 

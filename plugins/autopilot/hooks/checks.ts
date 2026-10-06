@@ -120,3 +120,30 @@ Find and fix the cause. After attempt ${FAIL_LIMIT}, this task's changes are rev
 
 ${o.rules}`
 }
+
+// One line shown under each reply while autopilot runs: the conversation is
+// the one thing every client draws (web, desktop, VS Code, phone), unlike the band.
+export function progressLine(o: {
+  isOn: boolean
+  phase: 'work' | 'checks'
+  round: number
+  maxRounds: number
+  fails: number
+  lastStop: string | null
+  done: number | null
+  total: number | null
+  next: string | null
+  verdict: { passed: boolean } | null
+}): string {
+  if (!o.isOn) return `Autopilot stopped: ${o.lastStop ?? 'off'}.`
+  if (o.phase === 'checks') return 'Autopilot · writing checks'
+  return [
+    `Autopilot · round ${o.round}/${o.maxRounds}`,
+    o.fails > 0 ? `fixing, attempt ${o.fails + 1} of ${FAIL_LIMIT}` : null,
+    o.total ? `${o.done ?? 0}/${o.total} done` : null,
+    o.next ? `next: ${o.next}` : null,
+    o.verdict ? `last check ${o.verdict.passed ? '✓' : '✗'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}

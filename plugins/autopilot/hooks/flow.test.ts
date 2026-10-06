@@ -112,9 +112,10 @@ test('a failed Check sends a fix round; a pass moves on to the next task', async
   expect(prompts.at(-1)).toContain('FAILED test_export')
 
   files['GOALS.md'] = GOALS.replace('- [ ] First', '- [x] First')
-  await $.turn.complete(turn())
+  const shown = await $.turn.complete(turn())
   await clock.advance(200)
   expect(prompts.at(-1)).toContain('Task: Second task')
+  expect(shown.text).toBe('Autopilot · round 3/40 · 1/2 done · next: Second task · last check ✓')
   expect(await status($)).toContain('last check passed: ruff check')
 })
 

@@ -96,7 +96,7 @@ export const RULES = `Rules:
 - Work on exactly this one task, as the smallest increment that works. Move fast.
 - If it would take more than ~15 minutes, first split it into smaller "- [ ]" sub-tasks indented under it in ${GOALS_FILE}, then do the first one.
 - Prove it works (run the tests, the app or the script). No proof, no tick.
-- Follow ${LESSONS_FILE} if it exists. Never edit locked checks (listed in .autopilot/locks.json): make the code satisfy them.
+- Follow ${LESSONS_FILE} (repository root) if it exists. Never edit locked checks (listed in .autopilot/locks.json at the repository root, if present): make the code satisfy them.
 - When verified, tick it ("- [x]") in ${GOALS_FILE} and add one line to its "## Log" section: what changed and how you verified it.
 - Add any new task or subgoal you discover to ${GOALS_FILE} where it belongs.
 - Commit to the current branch with a clear message. Never commit to or push main/master, never force-push.

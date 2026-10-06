@@ -15,7 +15,7 @@ const PROPS = {
   view: {},
 } as never
 
-for (const surface of ['terminal', 'desktop', 'mobile'] as const) {
+for (const surface of ['terminal', 'desktop', 'mobile', 'vscode'] as const) {
   test(`draws progress and hides on ${surface}`, async ($, on) => {
     mock.clock(on)
     on('fs.read', () => ({ value: TREE }))

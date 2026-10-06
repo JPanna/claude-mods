@@ -8,6 +8,7 @@ import {
   formatLocks,
   isLockedPath,
   parseLocks,
+  progressLine,
   relPath,
   tail,
   touchesLocked,
@@ -100,4 +101,12 @@ test('prompts carry the check, the done command, lessons and the fresh switch', 
   const tampered = fixPrompt({ task: 'T', round: 3, maxRounds: 40, check: null, output: '', attempt: 2, tampered: ['tests/t.py'], fresh: false, rules: RULES })
   expect(tampered).toContain('Locked check files were changed and have been restored: tests/t.py')
   expect(donePrompt({ round: 5, maxRounds: 40, done: 'pytest', output: 'F', attempt: 1, rules: RULES })).toContain('goal not met yet')
+})
+
+test('the progress line under each reply says where autopilot is', () => {
+  const base = { isOn: true, phase: 'work' as const, round: 3, maxRounds: 40, fails: 0, lastStop: null, done: 2, total: 9, next: 'Add tests', verdict: { passed: true } }
+  expect(progressLine(base)).toBe('Autopilot · round 3/40 · 2/9 done · next: Add tests · last check ✓')
+  expect(progressLine({ ...base, fails: 1, verdict: { passed: false } })).toBe('Autopilot · round 3/40 · fixing, attempt 2 of 3 · 2/9 done · next: Add tests · last check ✗')
+  expect(progressLine({ ...base, phase: 'checks' })).toBe('Autopilot · writing checks')
+  expect(progressLine({ ...base, isOn: false, lastStop: 'every goal is done' })).toBe('Autopilot stopped: every goal is done.')
 })
