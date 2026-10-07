@@ -299,7 +299,7 @@ async function handle($: Engine, input: string): Promise<string> {
   if (verb === 'plan') {
     if (!tail) return `Usage: /autopilot plan <goal>\n\n${HELP}`
     await update($, run, r => ({ ...r, isOn: false, round: 0, stuck: 0, lastGoals: '', task: null, base: null, fails: 0 }))
-    submitSoon($, planPrompt(tail))
+    submitSoon($, planPrompt(tail, await $.session.cwd()))
     return `Planning ${GOALS_FILE}. Review it, then run /autopilot to start.`
   }
   if (verb === 'rounds') {
@@ -307,7 +307,7 @@ async function handle($: Engine, input: string): Promise<string> {
     if (!Number.isInteger(n) || n < 1) return 'Usage: /autopilot rounds <n>'
     await update($, run, r => ({ ...r, maxRounds: n }))
   } else if (args) {
-    await start($, planPrompt(args), { round: 0 })
+    await start($, planPrompt(args, await $.session.cwd()), { round: 0 })
     return `Autopilot on: planning ${GOALS_FILE}, then working through it. /autopilot stop to stop.`
   }
 

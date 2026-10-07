@@ -48,6 +48,7 @@ function repo(on: On, files: Record<string, string>, results: boolean[] = []) {
   on('tool.call', () => ({ result: {} as never, text: '', ref: 0 }) as never)
   on('ui.status', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
+  on('session.cwd', () => ({ value: '/repo' }))
   return { prompts, git, clock }
 }
 

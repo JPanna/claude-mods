@@ -116,11 +116,14 @@ Done: <command that passes only when the goal is met>
 
 ## Log`
 
-export function planPrompt(goal: string): string {
+// `where` is the folder the mod reads GOALS.md from (the session's working
+// directory), named outright so the plan never lands somewhere the mod can't see.
+export function planPrompt(goal: string, where?: string): string {
+  const path = where ? `${where.replace(/[\\/]+$/, '')}/${GOALS_FILE}` : `${GOALS_FILE} in the current working directory`
   return `[autopilot: planning]
 Overarching goal: ${goal}
 
-Look at the codebase as needed, then write ${GOALS_FILE} at the repository root as a goal tree in exactly this shape (replace the file if it exists):
+Look at the codebase as needed, then write ${path} (exactly this path) as a goal tree in exactly this shape (replace the file if it exists):
 
 ${GOALS_FORMAT}
 

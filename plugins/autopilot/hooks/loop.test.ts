@@ -23,6 +23,7 @@ function engine(on: On, files: Record<string, string>, branch = 'feature') {
   on('tool.call', () => ({ result: {} as never, text: '', ref: 0 }) as never)
   on('ui.status', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
+  on('session.cwd', () => ({ value: '/repo' }))
   on('process.run', () => ({ value: { exitCode: 0, stdout: `${branch}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   return { prompts, clock }
 }
@@ -70,6 +71,7 @@ test('a new goal plans first; a blocked answer stops the loop', async ($, on) =>
   await clock.advance(200)
   expect(prompts.at(-1)).toContain('[autopilot: planning]')
   expect(prompts.at(-1)).toContain('Overarching goal: build a stock screener')
+  expect(prompts.at(-1)).toContain('write /repo/GOALS.md (exactly this path)')
 
   files['GOALS.md'] = TREE
   await $.turn.complete(turn('Need creds\nAUTOPILOT: BLOCKED need the Bloomberg login'))
