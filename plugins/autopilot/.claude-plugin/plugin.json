@@ -1,6 +1,6 @@
 {
   "name": "autopilot",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Works through a GOALS.md goal tree turn after turn, with locked checks, its own check verdicts, lessons that carry over, safety guards and a progress band",
   "types": "./types/index.d.ts",
   "author": {

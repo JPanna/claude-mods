@@ -224,3 +224,22 @@ export function routineCommand(notifications: ReadonlyArray<{ origin: string; co
   }
   return null
 }
+
+export type TaskItem = { key: string; subject: string; status: 'pending' | 'in_progress' | 'completed' }
+
+export const MAX_TASK_ITEMS = 40
+
+// GOALS.md as items for the session's task checklist, the progress view the
+// Claude app draws for every session (cloud included), unlike a mod's panel.
+// Subtasks are marked with "↳"; the next task is in progress.
+export function taskItems(goals: Goals): TaskItem[] {
+  const next = nextTask(goals)
+  return goals.items.slice(0, MAX_TASK_ITEMS).map(item => {
+    const path = trail(item)
+    return {
+      key: path.join(' › '),
+      subject: `${path.length > 1 ? `${'  '.repeat(path.length - 2)}↳ ` : ''}${item.text}`,
+      status: item.isDone ? 'completed' : item === next ? 'in_progress' : 'pending',
+    }
+  })
+}

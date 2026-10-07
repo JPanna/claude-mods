@@ -29,6 +29,10 @@ export type GoalsSummary = {
   next: string | null
 }
 
+// The session task checklist autopilot mirrors GOALS.md into: item key -> task.
+export type MirroredTask = { id: string; subject: string; status: string }
+export type TaskMirror = Record<string, MirroredTask>
+
 export type TestRun = { passed: boolean; at: number; command: string }
 
 export type Stats = {
@@ -45,6 +49,7 @@ declare module 'claude-code' {
       goals: GoalsSummary | null
       stats: Stats
       isHidden: boolean
+      tasks: TaskMirror
     }
   }
 }

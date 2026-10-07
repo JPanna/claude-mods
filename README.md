@@ -183,6 +183,8 @@ It stops, with a toast and a push notification where the session supports them, 
 
 **Routines:** a Routine's prompt reaches an existing session as a notification rather than a typed command, so the mod picks up `/autopilot`, `rounds <n>`, `status` or `stop` from your own scheduled routines (never a new goal) and runs it when that turn ends.
 
+**Task checklist (the Claude app's own progress panel):** while autopilot runs, it mirrors `GOALS.md` into the session's task list: a first item with its state (`Autopilot · round 3/40 · 2/9 done · …`), then every task, ticked as it's done, with the current one in progress. The Claude app shows this list for cloud sessions too, so it's the panel to watch there.
+
 **Progress under each reply (works everywhere):** while autopilot runs, a line like `Autopilot · round 3/40 · 2/9 done · next: Add tests · last check ✓` appears under every reply, and `Autopilot stopped: <reason>.` when it stops. It's part of the conversation, so it shows in the web app, the desktop app, VS Code and on your phone.
 
 **Panel above the prompt (terminal):** state (and fix attempt), goal progress, next task, last turn's time and tool calls, files edited, last check verdict, fresh subagents, with Stop and Hide buttons. It draws in the terminal (`claude`). Some apps don't draw mod panels yet, including the VS Code extension and cloud sessions viewed in the web or desktop app; the progress line above covers those, and `/autopilot status` gives the same detail on demand.

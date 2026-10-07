@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface as Engine, ProcessRunInit, Register } from 'claude-code'
 
-import type { GoalsSummary, Run, Stats } from '../types'
+import type { GoalsSummary, Run, Stats, TaskMirror } from '../types'
 import {
   BLOCKED,
   DEFAULT_MAX_ROUNDS,
@@ -14,6 +14,7 @@ import {
   planPrompt,
   routineCommand,
   summarize,
+  taskItems,
 } from './goals'
 import {
   FAIL_LIMIT,
@@ -55,6 +56,11 @@ const run = atom({ plugin: 'autopilot', key: 'run' } as const, OFF)
 const goals = atom({ plugin: 'autopilot', key: 'goals' } as const, null)
 const stats = atom({ plugin: 'autopilot', key: 'stats' } as const, EMPTY)
 const isHidden = atom({ plugin: 'autopilot', key: 'isHidden' } as const, false)
+const NO_TASKS: TaskMirror = {}
+const tasks = atom({ plugin: 'autopilot', key: 'tasks' } as const, NO_TASKS)
+const HEADER = '__autopilot__'
+// Off once the session turns out to have no task tools, so they aren't retried every round.
+let hasTaskTools = true
 
 const HELP = `/autopilot <goal>        plan GOALS.md for a new goal, then work through it
 /autopilot plan <goal>   only write GOALS.md, so you can review it first
@@ -468,6 +474,54 @@ async function lineAfter($: Engine): Promise<string> {
   })
 }
 
+async function taskTool($: Engine, input: Record<string, unknown>): Promise<unknown> {
+  try {
+    const ran = await $.tool.call(input as never)
+    return ran.deny === undefined && !ran.isError ? ran.result : null
+  } catch {
+    return null
+  }
+}
+
+// Mirrors GOALS.md, plus a first line with autopilot's state, into the session's
+// task checklist: the progress view the Claude app shows for cloud sessions too.
+async function syncTasks($: Engine) {
+  if (!hasTaskTools) return
+  const text = await readGoals($)
+  const r = await read($, run)
+  const header = { key: HEADER, subject: await lineAfter($), status: r.isOn ? 'in_progress' : 'completed' }
+  const wanted = [header, ...(text ? taskItems(parse(text)) : [])]
+  const before = await read($, tasks)
+  const after: TaskMirror = {}
+
+  for (const item of wanted) {
+    let task = before[item.key]
+    if (!task) {
+      const made = (await taskTool($, {
+        tool: 'TaskCreate',
+        subject: item.subject,
+        description: item.key === HEADER ? 'Autopilot progress' : `From GOALS.md: ${item.key}`,
+        activeForm: item.key === HEADER ? 'Autopilot running' : `Working on: ${item.subject.replace(/^\s*↳ /, '')}`,
+      })) as { task?: { id?: string } } | null
+      const id = made?.task?.id
+      if (!id) {
+        hasTaskTools = false
+        break
+      }
+      task = { id, subject: item.subject, status: 'pending' }
+    }
+    if (task.status !== item.status || task.subject !== item.subject) {
+      await taskTool($, { tool: 'TaskUpdate', taskId: task.id, status: item.status, subject: item.subject })
+      task = { ...task, status: item.status, subject: item.subject }
+    }
+    after[item.key] = task
+  }
+  for (const [key, task] of Object.entries(before)) {
+    if (!(key in after)) await taskTool($, { tool: 'TaskUpdate', taskId: task.id, status: 'deleted' })
+  }
+  await update($, tasks, () => after)
+}
+
 function ago(ms: number): string {
   const minutes = Math.round(ms / 60000)
   return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes}m ago` : `${Math.round(minutes / 60)}h ago`
@@ -562,6 +616,7 @@ export const register: Register = on => {
       fromRoutine = null
       const answer = await handle($, args)
       $.ui.toast(answer, { timeoutMs: 10000 })
+      await syncTasks($)
       return { ...done, text: `Autopilot: ${answer.split('\n')[0]}` }
     }
 
@@ -581,6 +636,7 @@ export const register: Register = on => {
     } else {
       await afterRound($, r, e.answer)
     }
+    await syncTasks($)
     return { ...done, text: await lineAfter($) }
   })
 

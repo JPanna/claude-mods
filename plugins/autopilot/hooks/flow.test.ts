@@ -182,3 +182,39 @@ test('fresh on hands each round to a new subagent', async ($, on) => {
   expect(await status($)).toContain('fresh subagents on')
   expect((await $.command.run(cmd('fresh maybe'))).text).toContain('Usage')
 })
+
+test('the task checklist mirrors GOALS.md and ticks items as they finish', async ($, on) => {
+  const files: Record<string, string> = { 'GOALS.md': GOALS.replace('Check: ruff check\n', '').replace('Done: pytest tests/test_export.py\n', '') }
+  const calls: Array<Record<string, unknown>> = []
+  let next = 0
+  on('tool.call', { tool: 'TaskCreate' }, (_$, e) => {
+    calls.push({ ...e })
+    next += 1
+    return { result: { task: { id: `t${next}`, subject: (e as { subject: string }).subject } }, text: '', ref: 0 } as never
+  })
+  on('tool.call', { tool: 'TaskUpdate' }, (_$, e) => {
+    calls.push({ ...e })
+    return { result: { success: true }, text: '', ref: 0 } as never
+  })
+  const { clock } = repo(on, files)
+
+  await $.command.run(cmd(''))
+  await clock.advance(200)
+  files['GOALS.md'] = (files['GOALS.md'] ?? '').replace('- [ ] First', '- [x] First')
+  await $.turn.complete(turn())
+  await clock.advance(200)
+
+  const created = calls.filter(c => c.tool === 'TaskCreate').map(c => c.subject)
+  expect(created).toEqual(['Autopilot · round 2/40 · 1/2 done · next: Second task', 'First task', 'Second task'])
+  const updates = calls.filter(c => c.tool === 'TaskUpdate').map(c => [c.taskId, c.status])
+  expect(updates).toEqual([['t1', 'in_progress'], ['t2', 'completed'], ['t3', 'in_progress']])
+
+  files['GOALS.md'] = (files['GOALS.md'] ?? '').replace('- [ ] Second', '- [x] Second')
+  calls.length = 0
+  await $.turn.complete(turn())
+  await clock.advance(200)
+  expect(calls.map(c => [c.tool, c.taskId, c.status, c.subject])).toEqual([
+    ['TaskUpdate', 't1', 'completed', 'Autopilot stopped: every goal is done.'],
+    ['TaskUpdate', 't3', 'completed', 'Second task'],
+  ])
+})

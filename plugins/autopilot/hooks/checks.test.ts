@@ -13,7 +13,7 @@ import {
   tail,
   touchesLocked,
 } from './checks'
-import { LESSONS_FILE, RULES, appendLog, decide, parseCommand } from './goals'
+import { LESSONS_FILE, RULES, appendLog, decide, parse, parseCommand, taskItems } from './goals'
 import { writes } from './guard'
 
 const TREE = `# Goal: Ship CSV export
@@ -109,4 +109,15 @@ test('the progress line under each reply says where autopilot is', () => {
   expect(progressLine({ ...base, fails: 1, verdict: { passed: false } })).toBe('Autopilot · round 3/40 · fixing, attempt 2 of 3 · 2/9 done · next: Add tests · last check ✗')
   expect(progressLine({ ...base, phase: 'checks' })).toBe('Autopilot · writing checks')
   expect(progressLine({ ...base, isOn: false, lastStop: 'every goal is done' })).toBe('Autopilot stopped: every goal is done.')
+})
+
+test('GOALS.md becomes task checklist items, the next task in progress', () => {
+  const items = taskItems(parse('# Goal: g\n- [x] A\n  - [x] A1\n- [ ] B\n  - [ ] B1\n  - [ ] B2\n'))
+  expect(items).toEqual([
+    { key: 'A', subject: 'A', status: 'completed' },
+    { key: 'A › A1', subject: '↳ A1', status: 'completed' },
+    { key: 'B', subject: 'B', status: 'pending' },
+    { key: 'B › B1', subject: '↳ B1', status: 'in_progress' },
+    { key: 'B › B2', subject: '↳ B2', status: 'pending' },
+  ])
 })
